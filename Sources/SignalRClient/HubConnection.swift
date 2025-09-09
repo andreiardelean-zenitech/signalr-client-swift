@@ -297,9 +297,7 @@ public actor HubConnection {
         let startTask = self.startTask
 
         stopDuringStartError = SignalRError.connectionAborted
-        if (handshakeRejector != nil) {
-            handshakeRejector!(SignalRError.connectionAborted)
-        }
+        handshakeRejector?(SignalRError.connectionAborted)
 
         await connection.stop(error: nil)
 
@@ -321,9 +319,7 @@ public actor HubConnection {
         }
 
         stopDuringStartError = SignalRError.connectionAborted
-        if (handshakeResolver != nil) {
-            handshakeRejector!(SignalRError.connectionAborted)
-        }
+        handshakeRejector?(SignalRError.connectionAborted)
 
         if (stopping) {
             await completeClose(error: error)
@@ -562,7 +558,7 @@ public actor HubConnection {
                         try await self.sendMessageInternal(.string(HandshakeProtocol.writeHandshakeRequest(handshakeRequest: handshakeRequest)))
                         logger.log(level: .debug, message: "Sent handshake request message with version: \(version), protocol: \(hubProtocol.name)")
                     } catch {
-                        self.handshakeRejector!(error)
+                        self.handshakeRejector?(error)
                     }
                 }
             }
@@ -614,20 +610,20 @@ public actor HubConnection {
             (remainingData, handshakeResponse) = try HandshakeProtocol.parseHandshakeResponse(data: content)
         } catch {
             logger.log(level: .error, message: "Error parsing handshake response: \(error)")
-            handshakeRejector!(error)
+            handshakeRejector?(error)
             throw error
         }
 
         if (handshakeResponse.error != nil) {
             logger.log(level: .error, message: "Server returned handshake error: \(handshakeResponse.error!)") 
             let error = SignalRError.handshakeError(handshakeResponse.error!)
-            handshakeRejector!(error)
+            handshakeRejector?(error)
             throw error
         } else {
             logger.log(level: .debug, message: "Handshake compeleted")
         }
 
-        handshakeResolver!(handshakeResponse)
+        handshakeResolver?(handshakeResponse)
         return remainingData
     }
 
